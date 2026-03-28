@@ -30,8 +30,15 @@ phases:
       #- echo Deploying to EC2
       #- ssh ec2-user@<EC2_PUBLIC_IP> "docker pull 911167917923.dkr.ecr.ca-central-1.amazonaws.com/flask-app:latest && docker stop flask-app || true && docker rm flask-app || true && docker run -d -p 80:5000 --name flask-app 911167917923.dkr.ecr.ca-central-1.amazonaws.com/flask-app:latest"
       # Terraform Deployment
-      - echo Deploying Terraform infrastructure
+      - echo Terraform action is $TF_ACTION
       - cd infra
       - terraform init
-      - terraform plan -out=tfplan
-      - terraform apply -auto-approve tfplan
+      - |
+        if [ "$TF_ACTION" = "destroy" ]; then
+          echo "Destroying Infrastructure .."
+          terraform destroy -auto-approve
+        else
+          echo "Applying Infrastructure"
+          terraform plan -out=tfplan
+          terraform apply -auto-approve tfplan
+        fi
