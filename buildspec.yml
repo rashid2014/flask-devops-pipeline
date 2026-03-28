@@ -1,0 +1,37 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo Installing dependencies
+      #-Terrfaform dependency
+      - yum install -y unzip
+      - curl -o terraform.zip https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip
+      - unzip terraform.zip
+      - mv terraform /usr/local/bin/
+      - terraform -version
+
+  pre_build:
+    commands:
+      - echo Logging in to ECR
+      - aws ecr get-login-password --region ca-central-1 | docker login --username AWS --password-stdin 911167917923.dkr.ecr.ca-central-1.amazonaws.com
+
+  build:
+    commands:
+      - echo Building Docker image
+      - docker build -t flask-app .
+      - docker tag flask-app:latest 911167917923.dkr.ecr.ca-central-1.amazonaws.com/flask-app:latest
+
+  post_build:
+    commands:
+      - echo Pushing Docker image
+      - docker push 911167917923.dkr.ecr.ca-central-1.amazonaws.com/flask-app:latest
+
+      #- echo Deploying to EC2
+      #- ssh ec2-user@<EC2_PUBLIC_IP> "docker pull 911167917923.dkr.ecr.ca-central-1.amazonaws.com/flask-app:latest && docker stop flask-app || true && docker rm flask-app || true && docker run -d -p 80:5000 --name flask-app 911167917923.dkr.ecr.ca-central-1.amazonaws.com/flask-app:latest"
+      # Terraform Deployment
+      - echo Deploying Terraform infrastructure
+      - cd infra
+      - terraform init
+      - terraform plan -out=tfplan
+      - terraform apply -auto-approve tfplan
